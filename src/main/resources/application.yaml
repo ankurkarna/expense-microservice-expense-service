@@ -1,0 +1,26 @@
+spring:
+  application:
+    name: CRUD-expense-service
+
+  datasource:
+    url: jdbc:mysql://${DB_HOST}:${DB_PORT}/${DB_NAME}?useSSL=true&requireSSL=true&verifyServerCertificate=false&serverTimezone=Asia/Kolkata
+    username: ${DB_USERNAME}
+    password: ${DB_PASSWORD}
+    driver-class-name: com.mysql.cj.jdbc.Driver
+
+  jpa:
+    hibernate:
+      ddl-auto: update
+      ddl-show: true
+
+server:
+  port: 8082
+
+user:
+  service:
+    url: http://localhost:8081
+
+# JWT Configuration - MUST match User Service secret key!
+jwt:
+  secret:
+    key: "E9bEr9zPAmGk9t99QT/Uj8f5l1a0p4yT7Nw9TtUqCqk="
