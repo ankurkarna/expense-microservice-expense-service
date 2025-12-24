@@ -17,7 +17,7 @@ spec:
         image: expense-service:local
         imagePullPolicy: IfNotPresent
         ports:
-        - containerPort: 8082
+        - containerPort: 8082 # Expense Port
         env:
         - name: DB_USERNAME
           valueFrom:
@@ -29,6 +29,14 @@ spec:
             secretKeyRef:
               name: aiven-db-secret
               key: password
+        volumeMounts:
+        - name: dot-env-file
+          mountPath: /app/.env # This satisfies the Java Dotenv library
+          subPath: .env
+      volumes:
+      - name: dot-env-file
+        configMap:
+          name: user-env-config # Shared ConfigMap
 ---
 apiVersion: v1
 kind: Service
