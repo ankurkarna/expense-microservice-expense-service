@@ -1,0 +1,43 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: expense-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: expense-service
+  template:
+    metadata:
+      labels:
+        app: expense-service
+    spec:
+      containers:
+      - name: expense-service
+        image: expense-service:local
+        imagePullPolicy: IfNotPresent
+        ports:
+        - containerPort: 8082
+        env:
+        - name: DB_USERNAME
+          valueFrom:
+            secretKeyRef:
+              name: aiven-db-secret
+              key: username
+        - name: DB_PASSWORD
+          valueFrom:
+            secretKeyRef:
+              name: aiven-db-secret
+              key: password
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: expense-service
+spec:
+  selector:
+    app: expense-service
+  ports:
+    - protocol: TCP
+      port: 8082
+      targetPort: 8082
