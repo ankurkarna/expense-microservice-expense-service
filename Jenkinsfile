@@ -2,48 +2,48 @@ pipeline {
     agent any
 
     environment {
-        DOCKER_HUB_REPO = 'ankurkarna/expense-microservice-expense-service'
-        DOCKER_HUB_CREDENTIALS = 'docker-hub-creds'
+        IMAGE_NAME = "expense-service:local"
+        CLUSTER_NAME = "microservices-lab"
+        KIND_NODE = "microservices-lab-control-plane"
+        // Use the same internal IP we found earlier
+        K8S_SERVER = "https://172.18.0.2:6443"
     }
 
     stages {
         stage('Checkout') {
             steps {
+                cleanWs()
                 checkout scm
             }
         }
 
-        stage('Build & Test') {
+        stage('Build JAR') {
             steps {
-                sh 'chmod +x mvnw || true'
-                sh './mvnw clean test || mvn clean test'
+                sh "chmod +x mvnw"
+                sh "./mvnw clean package -DskipTests"
             }
         }
 
-        stage('Build Docker Image') {
+        stage('Docker Build') {
             steps {
-                script {
-                    docker.build("${DOCKER_HUB_REPO}:${BUILD_NUMBER}")
-                    docker.build("${DOCKER_HUB_REPO}:latest")
+                sh "docker build -t ${IMAGE_NAME} ."
+            }
+        }
+
+        stage('Load Image into Kind') {
+            steps {
+                // Pipe logic for M2/Kind snapshotter fix
+                sh "docker save ${IMAGE_NAME} | docker exec -i ${KIND_NODE} ctr -n k8s.io images import -"
+            }
+        }
+
+        stage('Deploy to K8s') {
+            steps {
+                withKubeConfig([credentialsId: 'k8s-config']) {
+                    sh "kubectl apply -f expense-service.yaml --server=${K8S_SERVER} --insecure-skip-tls-verify=true --validate=false"
+                    sh "kubectl rollout restart deployment expense-service --server=${K8S_SERVER} --insecure-skip-tls-verify=true"
                 }
             }
-        }
-
-        stage('Push to Docker Hub') {
-            steps {
-                script {
-                    docker.withRegistry('https://registry.hub.docker.com', DOCKER_HUB_CREDENTIALS) {
-                        docker.image("${DOCKER_HUB_REPO}:${BUILD_NUMBER}").push()
-                        docker.image("${DOCKER_HUB_REPO}:latest").push()
-                    }
-                }
-            }
-        }
-    }
-
-    post {
-        always {
-            cleanWs()
         }
     }
 }
